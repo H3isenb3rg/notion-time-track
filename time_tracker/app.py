@@ -6,6 +6,27 @@ db_id = open("db_id.txt", "r").readline()
 db_query_url = f"https://api.notion.com/v1/databases/{db_id}/query"
 new_page_url = "https://api.notion.com/v1/pages"
 oauth_token = f"Bearer {token}"
+last_week_sentric_filter =  {
+            "and": [
+                {
+                    "property": "Is Sentric",
+                    "formula": {
+                        "checkbox": {
+                        "equals": True
+                        }
+                    }
+                },
+                {
+                    "property": "Last Week",
+                    "formula": {
+                        "checkbox": {
+                        "equals": True
+                        }
+                    }
+                }
+            ]
+        }
+
 current_week_sentric_filter =  {
             "and": [
                 {
@@ -27,6 +48,7 @@ current_week_sentric_filter =  {
             ]
         }
 payload_query = {"page_size": 100, "filter": current_week_sentric_filter}
+payload_last_week = {"page_size": 100, "filter": last_week_sentric_filter}
 headers = {
     "accept": "application/json",
     "Notion-Version": "2022-06-28",
@@ -39,18 +61,29 @@ allowed_buckets = {
 }
 
 def run():
+    # TODO: same request for curr and last week.
     # Get current week times
     response = requests.post(db_query_url, json=payload_query, headers=headers)
     json_obj = json.loads(response.text)
-    json.dump(json_obj, open("test.json", "w"), indent=2)
     hours = count_hours(json_obj["results"])
     print(f"Current week hours -> {hours}")
-    print(f"Remaining hours -> {weekly_hours - hours}")
+
+    # Get last week times
+    response = requests.post(db_query_url, json=payload_last_week, headers=headers)
+    json_obj = json.loads(response.text)
+    last_week_hours = count_hours(json_obj["results"])
+    if last_week_hours<weekly_hours:
+        diff = weekly_hours - last_week_hours
+        print(f"Hours from last week -> {diff}")
+    else:
+        diff = 0
+
+    print(f"Remaining hours -> {weekly_hours + diff - hours}")
 
     # Get new time entry
     parsed_input = get_input_dict()
     db_page = build_db_page(parsed_input)
-    print(json.dumps(db_page, indent=2))
+    print(json.dumps(parsed_input, indent=2))
     response = input("Confirm Data? (Y/N)\n> ")
     if response.strip().lower() == "n":
         run()
@@ -121,7 +154,7 @@ def get_times() -> tuple[datetime.time, datetime.time]:
         except IndexError as err:
             pass
 
-    return today_with_time(start_time), today_with_time(end_time)
+    return today_with_time(start_time).isoformat(), today_with_time(end_time).isoformat()
 
 def build_name(page_name: str) -> dict:
     return {
@@ -136,13 +169,13 @@ def build_name(page_name: str) -> dict:
           ]
         }
 
-def build_start_time(start_time: datetime.datetime, end_time:datetime.datetime) -> dict:
+def build_start_time(start_time: str, end_time: str) -> dict:
     return {
           "id": f"XEO%5E",
           "type": "date",
           "date": {
-            "start": start_time.isoformat(),
-            "end": end_time.isoformat(),
+            "start": start_time,
+            "end": end_time,
             "time_zone": None
           }
         }
@@ -163,6 +196,7 @@ def build_db_page(input_object):
         "type": "database_id",
         "database_id": db_id
       }
+    
     properties = {
         "Name": build_name(input_object["description"]),
         "Bucket": build_bucket(input_object["bucket"]),
