@@ -131,7 +131,7 @@ def today_with_time(time: datetime.time) -> datetime.datetime:
         today.year, today.month, today.day, time.hour, time.minute, time.second
     )
 
-def get_times() -> tuple[datetime.time, datetime.time]:
+def get_times() -> tuple[str, str]:
     while True:
         try:
             raw_times = re.findall(r"\s*([01]?[0-9]|2[0-3])[:\.]?(\d{1,2})?\s*", input("Insert Start and End Times\n> "))
