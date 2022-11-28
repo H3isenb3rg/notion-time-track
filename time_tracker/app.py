@@ -72,11 +72,9 @@ def run():
     response = requests.post(db_query_url, json=payload_last_week, headers=headers)
     json_obj = json.loads(response.text)
     last_week_hours = count_hours(json_obj["results"])
-    if last_week_hours<weekly_hours:
-        diff = weekly_hours - last_week_hours
+    diff = weekly_hours - last_week_hours if last_week_hours<weekly_hours else 0
+    if diff>0:
         print(f"Hours from last week -> {diff}")
-    else:
-        diff = 0
 
     print(f"Remaining hours -> {weekly_hours + diff - hours}")
 
@@ -134,13 +132,21 @@ def today_with_time(time: datetime.time) -> datetime.datetime:
 def get_times() -> tuple[str, str]:
     while True:
         try:
-            raw_times = re.findall(r"\s*([01]?[0-9]|2[0-3])[:\.]?(\d{1,2})?\s*", input("Insert Start and End Times\n> "))
+            raw_input = input("Insert Start and End Times\n> ")
+            raw_times = re.findall(r"\s*(\d{1,2})[:\.]?(\d{2})?\s*", raw_input)
+            #raw_times.extend(re.findall(r"\s*(1\d{1})[:\.]?(\d{1,2})?\s*", raw_input))
+            #raw_times.extend(re.findall(r"\s*(2[0-3])[:\.]?(\d{1,2})?\s*", raw_input))
             if len(raw_times)<2:
                 print("Missing time stamp")
                 continue
 
-            start_time = build_time(raw_times[0])
-            end_time = build_time(raw_times[1])
+            try:
+                start_time = build_time(raw_times[0])
+                end_time = build_time(raw_times[1])
+            except ValueError:
+                print("Wrong Time values. Insert valid 24h times")
+                continue
+                
             if start_time == end_time:
                 print(f"Same time for start and end found: {start_time}")
                 continue
@@ -151,7 +157,7 @@ def get_times() -> tuple[str, str]:
                 end_time = tmp
             
             break
-        except IndexError as err:
+        except IndexError:
             pass
 
     return today_with_time(start_time).isoformat(), today_with_time(end_time).isoformat()
