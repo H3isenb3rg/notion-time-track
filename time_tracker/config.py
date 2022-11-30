@@ -18,30 +18,8 @@ class ConfigClass():
             "content-type": "application/json",
             "authorization": oauth_token
         }
-        last_week_sentric_filter = {
-            "and": [
-                {
-                    "property": "Is Sentric",
-                    "formula": {
-                        "checkbox": {
-                            "equals": True
-                        }
-                    }
-                },
-                {
-                    "property": "Last Week",
-                    "formula": {
-                        "checkbox": {
-                            "equals": True
-                        }
-                    }
-                }
-            ]
-        }
-        self.payload_last_week = {"page_size": 100,
-                                  "filter": last_week_sentric_filter}
 
-        current_week_sentric_filter = {
+        curr_last_week_sentric_filter = {
             "and": [
                 {
                     "property": "Is Sentric",
@@ -50,19 +28,30 @@ class ConfigClass():
                             "equals": True
                         }
                     }
-                },
-                {
-                    "property": "Current Week",
-                    "formula": {
-                        "checkbox": {
-                            "equals": True
+                }, {
+                    "or": [
+                        {
+                            "property": "Last Week",
+                            "formula": {
+                                "checkbox": {
+                                    "equals": True
+                                }
+                            }
+                        },
+                        {
+                            "property": "Current Week",
+                            "formula": {
+                                "checkbox": {
+                                    "equals": True
+                                }
+                            }
                         }
-                    }
+                    ]
                 }
             ]
         }
-        self.payload_current_week_query = {
-            "page_size": 100, "filter": current_week_sentric_filter}
+        self.payload_curr_last_week = {"page_size": 100,
+                                       "filter": curr_last_week_sentric_filter}
 
         self.allowed_buckets = {
             "casper": "bbc55b52-cbd2-4388-8882-65031a8f3fe5",

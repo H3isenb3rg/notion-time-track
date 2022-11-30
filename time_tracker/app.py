@@ -1,24 +1,20 @@
-import requests, json, re, datetime, tomllib, os
+import requests, json, re, datetime
 from .config import ConfigClass
     
 
 def run(configuration: ConfigClass):
-    # TODO: same request for curr and last week.
     # Get current week times
-    response = requests.post(configuration.time_entries_query_url, json=configuration.payload_current_week_query, headers=configuration.headers)
+    response = requests.post(configuration.time_entries_query_url, json=configuration.payload_curr_last_week, headers=configuration.headers)
     json_obj = json.loads(response.text)
-    hours = count_hours(json_obj["results"])
-    print(f"Current week hours -> {hours}")
-
-    # Get last week times
-    response = requests.post(configuration.time_entries_query_url, json=configuration.payload_last_week, headers=configuration.headers)
-    json_obj = json.loads(response.text)
-    last_week_hours = count_hours(json_obj["results"])
+    curr_week_hours = sum(float(record["properties"]["Hours"]["formula"]["number"]) for record in json_obj["results"] if record["properties"]["Current Week"]["formula"]["boolean"])
+    last_week_hours = sum(float(record["properties"]["Hours"]["formula"]["number"]) for record in json_obj["results"] if record["properties"]["Last Week"]["formula"]["boolean"])
+    print(f"Current week hours -> {curr_week_hours}")
+    
     diff = configuration.weekly_hours - last_week_hours if last_week_hours<configuration.weekly_hours else 0
     if diff>0:
         print(f"Hours from last week -> {diff}")
 
-    print(f"Remaining hours -> {configuration.weekly_hours + diff - hours}")
+    print(f"Remaining hours -> {configuration.weekly_hours + diff - curr_week_hours}")
 
     # Get new time entry
     parsed_input = get_input_dict(configuration.allowed_buckets)
@@ -36,6 +32,9 @@ def run(configuration: ConfigClass):
     # Send POST request with new time entry
     response = requests.post(configuration.new_page_url, json=db_page, headers=configuration.headers)
     response.raise_for_status()
+
+    print("New time entry successfully added!")
+    run(configuration)
     
     
 
