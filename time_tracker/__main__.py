@@ -1,4 +1,9 @@
+import os, tomllib
 from . import app
+from .config import ConfigClass
 
 if __name__=="__main__":
-    app.run()
+    with open(os.path.join(os.path.dirname(__file__), "config.toml"), "rb") as f:
+        configuration = ConfigClass(**tomllib.load(f))
+        
+    app.run(configuration)

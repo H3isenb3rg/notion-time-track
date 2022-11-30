@@ -1,93 +1,40 @@
-import requests, json, re, datetime
+import requests, json, re, datetime, tomllib, os
+from .config import ConfigClass
+    
 
-weekly_hours = 10
-token = open("notionAPItoken.txt", "r").readline()
-db_id = open("db_id.txt", "r").readline()
-db_query_url = f"https://api.notion.com/v1/databases/{db_id}/query"
-new_page_url = "https://api.notion.com/v1/pages"
-oauth_token = f"Bearer {token}"
-last_week_sentric_filter =  {
-            "and": [
-                {
-                    "property": "Is Sentric",
-                    "formula": {
-                        "checkbox": {
-                        "equals": True
-                        }
-                    }
-                },
-                {
-                    "property": "Last Week",
-                    "formula": {
-                        "checkbox": {
-                        "equals": True
-                        }
-                    }
-                }
-            ]
-        }
-
-current_week_sentric_filter =  {
-            "and": [
-                {
-                    "property": "Is Sentric",
-                    "formula": {
-                        "checkbox": {
-                        "equals": True
-                        }
-                    }
-                },
-                {
-                    "property": "Current Week",
-                    "formula": {
-                        "checkbox": {
-                        "equals": True
-                        }
-                    }
-                }
-            ]
-        }
-payload_query = {"page_size": 100, "filter": current_week_sentric_filter}
-payload_last_week = {"page_size": 100, "filter": last_week_sentric_filter}
-headers = {
-    "accept": "application/json",
-    "Notion-Version": "2022-06-28",
-    "content-type": "application/json",
-    "authorization": oauth_token
-}
-allowed_buckets = {
-    "casper": "bbc55b52-cbd2-4388-8882-65031a8f3fe5",
-    "various": "2cdbc31b-d2d4-4f64-af57-7be9318394c5"
-}
-
-def run():
+def run(configuration: ConfigClass):
     # TODO: same request for curr and last week.
     # Get current week times
-    response = requests.post(db_query_url, json=payload_query, headers=headers)
+    response = requests.post(configuration.time_entries_query_url, json=configuration.payload_current_week_query, headers=configuration.headers)
     json_obj = json.loads(response.text)
     hours = count_hours(json_obj["results"])
     print(f"Current week hours -> {hours}")
 
     # Get last week times
-    response = requests.post(db_query_url, json=payload_last_week, headers=headers)
+    response = requests.post(configuration.time_entries_query_url, json=configuration.payload_last_week, headers=configuration.headers)
     json_obj = json.loads(response.text)
     last_week_hours = count_hours(json_obj["results"])
-    diff = weekly_hours - last_week_hours if last_week_hours<weekly_hours else 0
+    diff = configuration.weekly_hours - last_week_hours if last_week_hours<configuration.weekly_hours else 0
     if diff>0:
         print(f"Hours from last week -> {diff}")
 
-    print(f"Remaining hours -> {weekly_hours + diff - hours}")
+    print(f"Remaining hours -> {configuration.weekly_hours + diff - hours}")
 
     # Get new time entry
-    parsed_input = get_input_dict()
-    db_page = build_db_page(parsed_input)
+    parsed_input = get_input_dict(configuration.allowed_buckets)
+    db_page = build_db_page(
+        configuration.db_id, 
+        parsed_input["description"], 
+        configuration.allowed_buckets[parsed_input["bucket"]],
+        parsed_input["dates"]
+        )
     print(json.dumps(parsed_input, indent=2))
     response = input("Confirm Data? (Y/N)\n> ")
     if response.strip().lower() == "n":
-        run()
+        run(configuration)
 
     # Send POST request with new time entry
-    response = requests.post(new_page_url, json=db_page, headers=headers)
+    response = requests.post(configuration.new_page_url, json=db_page, headers=configuration.headers)
     response.raise_for_status()
     
     
@@ -99,7 +46,7 @@ def count_hours(json_data):
 
     return hours
 
-def get_bucket() -> str:
+def get_bucket(allowed_buckets: dict[str, str]) -> str:
     while True:
         try:
             bucket = re.findall(r"\s*(\S+)\s*", input("Insert Bucket\n> "))[0]
@@ -186,27 +133,27 @@ def build_start_time(start_time: str, end_time: str) -> dict:
           }
         }
 
-def build_bucket(bucket_name):
+def build_bucket(bucket_id: str):
     return {
         "type": "relation",
         "relation": [
             {
-              "id": allowed_buckets[bucket_name]
+              "id": bucket_id
             }
         ],
         "has_more": False
     }
 
-def build_db_page(input_object):
+def build_db_page(db_id: str, description: str, bucket_id: str, times: list):
     parent = {
         "type": "database_id",
         "database_id": db_id
       }
     
     properties = {
-        "Name": build_name(input_object["description"]),
-        "Bucket": build_bucket(input_object["bucket"]),
-        "Start Time": build_start_time(input_object["dates"][0], input_object["dates"][1])
+        "Name": build_name(description),
+        "Bucket": build_bucket(bucket_id),
+        "Start Time": build_start_time(times[0], times[1])
     }
 
     return {
@@ -215,8 +162,8 @@ def build_db_page(input_object):
     }
     
 
-def get_input_dict() -> dict:
-    bucket = get_bucket().lower()
+def get_input_dict(allowed_buckets: dict[str, str]) -> dict:
+    bucket = get_bucket(allowed_buckets).lower()
     description = get_description()
     start, end = get_times()
 
