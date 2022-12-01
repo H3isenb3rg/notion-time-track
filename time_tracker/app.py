@@ -1,6 +1,6 @@
 import requests, json, re, datetime
 from .config import ConfigClass
-from .notionapi import NotionAPI
+from .notionapi import NotionAPI, Bucket
     
 
 def run(configuration: ConfigClass):
@@ -15,11 +15,12 @@ def run(configuration: ConfigClass):
     print(f"Remaining hours -> {configuration.weekly_hours + diff - curr_week_hours}")
 
     # Get new time entry
-    parsed_input = get_input_dict(configuration.allowed_buckets)
+    parsed_input = get_input_dict(notionAPI.buckets)
 
     # Confirm Input
-    print(json.dumps(parsed_input, indent=2))
-    response = input("Confirm Data? (Y/N)\n> ")
+    print("\nConfirm Data? (Y/N)")
+    for key, value in parsed_input.items(): print(f"  {key} -> {value}")
+    response = input("> ")
     if response.strip().lower() == "n":
         return
 
@@ -29,12 +30,25 @@ def run(configuration: ConfigClass):
 
     print("New time entry successfully added!")
 
-def get_bucket(allowed_buckets: dict[str, str]) -> str:
+def get_bucket(buckets: list[Bucket]) -> Bucket:
     while True:
+        print(f"Available Buckets:")
+        for i, b in enumerate(buckets): print(f"  {i} - {b.name}")
         try:
-            bucket = re.findall(r"\s*(\S+)\s*", input("Insert Bucket\n> "))[0]
-            if bucket.lower() in allowed_buckets.keys():
-                return bucket
+            bucket = str(re.findall(r"\s*(\S+)\s*", input("Choose Bucket\n> "))[0])
+
+            # Get bucket by index
+            if bucket.isdigit():
+                bucket = int(bucket)
+                if bucket < len(buckets) and bucket >= 0:
+                    return buckets[bucket]
+                else:
+                    print(f"Illegal index {bucket} - Only {len(buckets)} available")
+                    continue
+
+            # Get bucket by name
+            if bucket in buckets:
+                return buckets[buckets.index(bucket)]
             else:
                 print("Illegal Bucket")
                 continue
@@ -92,8 +106,8 @@ def get_times() -> tuple[str, str]:
 
     return today_with_time(start_time).isoformat(), today_with_time(end_time).isoformat()
 
-def get_input_dict(allowed_buckets: dict[str, str]) -> dict:
-    bucket = get_bucket(allowed_buckets).lower()
+def get_input_dict(buckets: list[Bucket]) -> dict:
+    bucket = get_bucket(buckets)
     description = get_description()
     start, end = get_times()
 
