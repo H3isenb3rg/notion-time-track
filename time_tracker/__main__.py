@@ -7,6 +7,7 @@ if __name__=="__main__":
         configuration = ConfigClass(**tomllib.load(f))
 
     try:
-        app.run(configuration)
+        while True:
+            app.run(configuration)
     except KeyboardInterrupt as e:
         print("\nGoodbye!")

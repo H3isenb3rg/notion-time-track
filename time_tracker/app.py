@@ -1,49 +1,33 @@
 import requests, json, re, datetime
 from .config import ConfigClass
+from .notionapi import NotionAPI
     
 
 def run(configuration: ConfigClass):
     # Get current week times
-    response = requests.post(configuration.time_entries_query_url, json=configuration.payload_curr_last_week, headers=configuration.headers)
-    json_obj = json.loads(response.text)
-    curr_week_hours = sum(float(record["properties"]["Hours"]["formula"]["number"]) for record in json_obj["results"] if record["properties"]["Current Week"]["formula"]["boolean"])
-    last_week_hours = sum(float(record["properties"]["Hours"]["formula"]["number"]) for record in json_obj["results"] if record["properties"]["Last Week"]["formula"]["boolean"])
+    notionAPI = NotionAPI(configuration)
+
+    curr_week_hours, last_week_hours = notionAPI.retrieve_hours()
     print(f"Current week hours -> {curr_week_hours}")
     
     diff = configuration.weekly_hours - last_week_hours if last_week_hours<configuration.weekly_hours else 0
-    if diff>0:
-        print(f"Hours from last week -> {diff}")
-
+    if diff>0: print(f'Hours from last week -> {diff}')
     print(f"Remaining hours -> {configuration.weekly_hours + diff - curr_week_hours}")
 
     # Get new time entry
     parsed_input = get_input_dict(configuration.allowed_buckets)
-    db_page = build_db_page(
-        configuration.db_id, 
-        parsed_input["description"], 
-        configuration.allowed_buckets[parsed_input["bucket"]],
-        parsed_input["dates"]
-        )
+
+    # Confirm Input
     print(json.dumps(parsed_input, indent=2))
     response = input("Confirm Data? (Y/N)\n> ")
     if response.strip().lower() == "n":
-        run(configuration)
+        return
 
     # Send POST request with new time entry
-    response = requests.post(configuration.new_page_url, json=db_page, headers=configuration.headers)
-    response.raise_for_status()
+    db_page = notionAPI.build_db_page(parsed_input["description"], parsed_input["bucket"], parsed_input["dates"])
+    notionAPI.send_time_entry(db_page)
 
     print("New time entry successfully added!")
-    run(configuration)
-    
-    
-
-def count_hours(json_data):
-    hours = 0
-    for record in json_data:
-        hours += float(record["properties"]["Hours"]["formula"]["number"])
-
-    return hours
 
 def get_bucket(allowed_buckets: dict[str, str]) -> str:
     while True:
@@ -61,7 +45,7 @@ def get_description() -> str:
     while True:
         try:
             return re.findall(r"\s*(\S+.*\S+)\s*", input("Insert Short Description\n> "))[0]
-        except IndexError as err:
+        except IndexError:
             pass
 
 def build_time(raw_time):
@@ -107,59 +91,6 @@ def get_times() -> tuple[str, str]:
             pass
 
     return today_with_time(start_time).isoformat(), today_with_time(end_time).isoformat()
-
-def build_name(page_name: str) -> dict:
-    return {
-          "type": "title",
-          "title": [
-            {
-              "type": "text",
-              "text": {
-                "content": page_name
-              }
-            }
-          ]
-        }
-
-def build_start_time(start_time: str, end_time: str) -> dict:
-    return {
-          "id": f"XEO%5E",
-          "type": "date",
-          "date": {
-            "start": start_time,
-            "end": end_time,
-            "time_zone": None
-          }
-        }
-
-def build_bucket(bucket_id: str):
-    return {
-        "type": "relation",
-        "relation": [
-            {
-              "id": bucket_id
-            }
-        ],
-        "has_more": False
-    }
-
-def build_db_page(db_id: str, description: str, bucket_id: str, times: list):
-    parent = {
-        "type": "database_id",
-        "database_id": db_id
-      }
-    
-    properties = {
-        "Name": build_name(description),
-        "Bucket": build_bucket(bucket_id),
-        "Start Time": build_start_time(times[0], times[1])
-    }
-
-    return {
-        "parent": parent,
-        "properties": properties
-    }
-    
 
 def get_input_dict(allowed_buckets: dict[str, str]) -> dict:
     bucket = get_bucket(allowed_buckets).lower()
