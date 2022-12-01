@@ -4,7 +4,10 @@ from dataclasses import dataclass, field
 @dataclass
 class ConfigClass():
     weekly_hours: int = field(default=10)
-    db_id: str = field(default="061a26b964d041c397e0b323220c6e8c")
+    buckets_db_id: str = field(default="f3f7e9cd21a74436b8912632ec6dadf6")
+    buckets_query_url: str = field(
+        default="https://api.notion.com/v1/databases/f3f7e9cd21a74436b8912632ec6dadf6/query")
+    time_entries_db_id: str = field(default="061a26b964d041c397e0b323220c6e8c")
     time_entries_query_url: str = field(
         default="https://api.notion.com/v1/databases/061a26b964d041c397e0b323220c6e8c/query")
     new_page_url: str = field(default="https://api.notion.com/v1/pages")
@@ -18,6 +21,15 @@ class ConfigClass():
             "content-type": "application/json",
             "authorization": oauth_token
         }
+
+        sentric_buckets_filter = {
+            "property": "Area",
+            "select": {
+                        "equals": "Sentric"
+            }
+        }
+        self.payload_sentric_buckets = {"page_size": 100,
+                                        "filter": sentric_buckets_filter}
 
         curr_last_week_sentric_filter = {
             "and": [
@@ -52,8 +64,3 @@ class ConfigClass():
         }
         self.payload_curr_last_week = {"page_size": 100,
                                        "filter": curr_last_week_sentric_filter}
-
-        self.allowed_buckets = {
-            "casper": "bbc55b52-cbd2-4388-8882-65031a8f3fe5",
-            "various": "2cdbc31b-d2d4-4f64-af57-7be9318394c5"
-        }
