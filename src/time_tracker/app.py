@@ -1,7 +1,7 @@
-import requests, json, re, datetime
+import re, datetime
 from .config import ConfigClass
 from .notionapi import NotionAPI, Bucket
-    
+
 
 def run(configuration: ConfigClass):
     # Get current week times
@@ -76,10 +76,7 @@ def today_with_time(time: datetime.time) -> datetime.datetime:
 def get_times() -> tuple[str, str]:
     while True:
         try:
-            raw_input = input("Insert Start and End Times\n> ")
-            raw_times = re.findall(r"\s*(\d{1,2})[:\.]?(\d{2})?\s*", raw_input)
-            #raw_times.extend(re.findall(r"\s*(1\d{1})[:\.]?(\d{1,2})?\s*", raw_input))
-            #raw_times.extend(re.findall(r"\s*(2[0-3])[:\.]?(\d{1,2})?\s*", raw_input))
+            raw_times = get_raw_times()
             if len(raw_times)<2:
                 print("Missing time stamp")
                 continue
@@ -106,11 +103,19 @@ def get_times() -> tuple[str, str]:
 
     return today_with_time(start_time).isoformat(), today_with_time(end_time).isoformat()
 
+
+def get_raw_times():
+    raw_input = input("Insert Start and End Times\n> ")
+    return re.findall(r"\s*(\d{1,2})[:\.]?(\d{2})?\s*", raw_input)
+    # raw_times.extend(re.findall(r"\s*(1\d{1})[:\.]?(\d{1,2})?\s*", raw_input))
+    # raw_times.extend(re.findall(r"\s*(2[0-3])[:\.]?(\d{1,2})?\s*", raw_input))
+
+
 def get_input_dict(buckets: list[Bucket]) -> dict:
     bucket = get_bucket(buckets)
     description = get_description()
-    start, end = get_times()
-
+    start, end = get_times()   
+ 
     return {
         "bucket": bucket,
         "description": description,
