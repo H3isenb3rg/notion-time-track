@@ -1,7 +1,7 @@
 import contextlib
 import re, datetime
-from .config import ConfigClass
-from .notionapi import NotionAPI, Bucket
+from config import ConfigClass
+from notionapi import NotionAPI, Bucket
 
 
 def run(configuration: ConfigClass):

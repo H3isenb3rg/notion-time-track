@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import requests, json
 
-from .config import ConfigClass
+from config import ConfigClass
 
 
 @dataclass
