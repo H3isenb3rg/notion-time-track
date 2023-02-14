@@ -11,7 +11,7 @@ def run(configuration: ConfigClass):
     curr_week_hours, last_week_hours = notionAPI.retrieve_hours()
     print(f"Current week hours -> {curr_week_hours}")
 
-    diff = configuration.weekly_hours - last_week_hours if last_week_hours < configuration.weekly_hours else 0
+    diff = get_diff(configuration.weekly_hours, last_week_hours)
     if diff > 0:
         print(f"Hours from last week -> {diff}")
     print(f"Remaining hours -> {configuration.weekly_hours + diff - curr_week_hours}")
@@ -34,6 +34,10 @@ def run(configuration: ConfigClass):
     print("New time entry successfully added!")
 
 
+def get_diff(weekly_hours: int, last_week_hours: float):
+    return weekly_hours - last_week_hours if last_week_hours < weekly_hours else 0
+
+
 def get_bucket(buckets: list[Bucket]) -> Bucket:
     while True:
         print("Available Buckets:")
@@ -54,7 +58,6 @@ def get_bucket(buckets: list[Bucket]) -> Bucket:
             if bucket in buckets:
                 return buckets[buckets.index(bucket)]
             print("Illegal Bucket")
-            continue
 
 
 def get_description() -> str:
