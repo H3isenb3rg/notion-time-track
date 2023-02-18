@@ -29,19 +29,9 @@ class NotionAPI:
         self.buckets = self._get_sentric_buckets()
 
     def retrieve_hours(self):
-        response = requests.post(self.config.time_entries_query_url, json=self.config.payload_curr_last_week, headers=self.config.headers)
-        json_obj = json.loads(response.text)
-        curr_week_hours = sum(
-            float(record["properties"]["Hours"]["formula"]["number"])
-            for record in json_obj["results"]
-            if record["properties"]["Current Week"]["formula"]["boolean"]
-        )
-        last_week_hours = sum(
-            float(record["properties"]["Hours"]["formula"]["number"])
-            for record in json_obj["results"]
-            if record["properties"]["Last Week"]["formula"]["boolean"]
-        )
-
+        json_obj = self._post_request(self.config.time_entries_query_url, self.config.payload_curr_last_week, self.config.headers)
+        curr_week_hours = self._count_week_hours(json_obj["results"])
+        last_week_hours = self._count_week_hours(json_obj["results"], curr_week=False)
         return curr_week_hours, last_week_hours
 
     def build_db_page(self, description: str, bucket: Bucket, times: list[str]):
@@ -52,12 +42,19 @@ class NotionAPI:
         return {"parent": parent, "properties": properties}
 
     def send_time_entry(self, db_page):
-        response = requests.post(self.config.new_page_url, json=db_page, headers=self.config.headers)
+        self._post_request(self.config.new_page_url, db_page, self.config.headers)
+
+    def _count_week_hours(self, results_list, curr_week: bool = True):
+        week = "Current Week" if curr_week else "Last Week"
+        return sum(float(record["properties"]["Hours"]["formula"]["number"]) for record in results_list if record["properties"][week]["formula"]["boolean"])
+
+    def _post_request(self, url: str, json_payload: dict, headers: dict):
+        response = requests.post(url, json=json_payload, headers=headers)
         response.raise_for_status()
+        return json.loads(response.text)
 
     def _get_sentric_buckets(self) -> list[Bucket]:
-        response = requests.post(self.config.buckets_query_url, json=self.config.payload_sentric_buckets, headers=self.config.headers)
-        json_obj = json.loads(response.text)
+        json_obj = self._post_request(self.config.buckets_query_url, self.config.payload_sentric_buckets, self.config.headers)
 
         return [
             Bucket(page["id"], page["properties"]["Name"]["title"][0]["plain_text"], page["properties"]["Area"]["select"]["name"])

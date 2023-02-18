@@ -1,5 +1,5 @@
 import os, tomllib
-from . import app
+from .time_tracker import TimeTracker
 from .config import ConfigClass
 
 if __name__ == "__main__":
@@ -7,7 +7,8 @@ if __name__ == "__main__":
         configuration = ConfigClass(**tomllib.load(f))
 
     try:
+        time_tacker = TimeTracker(configuration)
         while True:
-            app.run(configuration)
+            time_tacker.run()
     except KeyboardInterrupt:
         print("\nGoodbye!")

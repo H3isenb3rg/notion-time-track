@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "notion-time-track"
+version = "0.0.1"
+authors = [
+  { name="Matteo Beatrice", email="matteoe97@gmail.com" },
+]
+description = "A simple python app to insert time entries in Notion"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/H3isenb3rg/notion-time-track"
+"Bug Tracker" = "https://github.com/H3isenb3rg/notion-time-track/issues"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
