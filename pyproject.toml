@@ -1,16 +1,17 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=67"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "notion-time-track"
+name = "notiontt"
 version = "0.0.1"
 authors = [
   { name="Matteo Beatrice", email="matteoe97@gmail.com" },
 ]
+dependencies = ["requests"]
 description = "A simple python app to insert time entries in Notion"
-readme = "README.md"
-requires-python = ">=3.7"
+readme = {file = "README.txt", content-type = "text/markdown"}
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
