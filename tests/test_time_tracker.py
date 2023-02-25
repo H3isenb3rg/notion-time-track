@@ -25,7 +25,7 @@ def patch_datetime_date(monkeypatch):
 
 @pytest.fixture
 def configuration():
-    return ConfigClass(10, "", "https://localhost", "", "https://localhost", "https://localhost")
+    return ConfigClass(10, "", "https://localhost", "", "https://localhost", "https://localhost", "super secret api token")
 
 
 @pytest.fixture

@@ -9,9 +9,10 @@ class ConfigClass:
     time_entries_db_id: str = field(default="061a26b964d041c397e0b323220c6e8c")
     time_entries_query_url: str = field(default="https://api.notion.com/v1/databases/061a26b964d041c397e0b323220c6e8c/query")
     new_page_url: str = field(default="https://api.notion.com/v1/pages")
+    api_token: str | None = field(default=None)
 
     def __post_init__(self):
-        token = open("notionAPItoken.txt", "r").readline()
+        token = open("notionAPItoken.txt", "r").readline() if self.api_token is None else self.api_token
         oauth_token = f"Bearer {token}"
         self.headers = {"accept": "application/json", "Notion-Version": "2022-06-28", "content-type": "application/json", "authorization": oauth_token}
 
