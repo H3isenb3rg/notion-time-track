@@ -4,11 +4,17 @@ import datetime
 from time_tracker.time_tracker import TimeTracker, ConfigClass
 from time_tracker import notionapi
 
-notionapi.NotionAPI._get_sentric_buckets = lambda self: [
-    notionapi.Bucket("bkt0", "Casper", "Sentric"),
-    notionapi.Bucket("bkt1", "Data-Processing", "Sentric"),
-    notionapi.Bucket("bkt2", "Other Bucket", "Other")
-]
+
+@pytest.fixture
+def mock_get_sentric_buckets(monkeypatch: pytest.MonkeyPatch):
+    """Avoids request to get buckets"""
+
+    def mock_get(*args, **kwargs):
+        return [notionapi.Bucket("bkt0", "Casper", "Sentric"),
+                notionapi.Bucket("bkt1", "Data-Processing", "Sentric"),
+                notionapi.Bucket("bkt2", "Other Bucket", "Other")]
+
+    monkeypatch.setattr(notionapi.NotionAPI, "_get_sentric_buckets", mock_get)
 
 
 @pytest.fixture
@@ -29,7 +35,7 @@ def configuration():
 
 
 @pytest.fixture
-def time_tracker(configuration):
+def time_tracker(configuration, mock_get_sentric_buckets):
     return TimeTracker(configuration)
 
 
