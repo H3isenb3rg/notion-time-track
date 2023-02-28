@@ -8,7 +8,7 @@ version = "0.0.2"
 authors = [
   { name="H3isenb3rg", email="matteoe97@gmail.com" },
 ]
-dependencies = ["requests"]
+dependencies = ["requests", "toml"]
 description = "A simple python app to insert time entries in Notion"
 readme = {file = "README.txt", content-type = "text/markdown"}
 requires-python = ">=3.10"
