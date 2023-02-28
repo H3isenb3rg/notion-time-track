@@ -1,4 +1,4 @@
-import re, datetime, os, tomllib
+import re, datetime
 
 from .config import ConfigClass
 from .notionapi import NotionAPI, Bucket
@@ -112,9 +112,3 @@ class TimeTracker:
     def _get_input_confirmation(self, parsed_input: dict):
         prompt = "\nConfirm Data? (Y/N)\n" + "\n".join(f"  {key} -> {value}" for key, value in parsed_input.items()) + "\n> "
         return input(prompt).strip().lower()
-
-
-if __name__ == "__main__":
-    with open(os.path.join(os.path.dirname(__file__), "config.toml"), "rb") as f:
-        configuration = ConfigClass(**tomllib.load(f))
-    TimeTracker(configuration).run()

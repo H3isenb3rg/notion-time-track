@@ -1,5 +1,4 @@
 import pathlib
-from getpass import getpass
 
 
 DEFAULT_CONFIG = {
@@ -16,4 +15,4 @@ try:
     NOTION_API_TOKEN = pathlib.Path("notionAPItoken.txt").read_text()
 except FileNotFoundError:
     print("API token file(notionAPItoken.txt) not found!")
-    NOTION_API_TOKEN = getpass("Please insert Notion API token:\n> ")
+    NOTION_API_TOKEN = None
