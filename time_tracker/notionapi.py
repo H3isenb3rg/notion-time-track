@@ -56,10 +56,10 @@ class NotionAPI:
     def _get_sentric_buckets(self) -> list[Bucket]:
         json_obj = self._post_request(self.config.buckets_query_url, self.config.payload_sentric_buckets, self.config.headers)
 
-        return [
+        return sorted([
             Bucket(page["id"], page["properties"]["Name"]["title"][0]["plain_text"], page["properties"]["Area"]["select"]["name"])
             for page in json_obj["results"]
-        ]
+        ], key=lambda b: b.area)
 
     def _build_name(self, page_name: str) -> dict:
         return {"type": "title", "title": [{"type": "text", "text": {"content": page_name}}]}

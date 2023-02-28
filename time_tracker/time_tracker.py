@@ -1,4 +1,5 @@
 import re, datetime
+
 from .config import ConfigClass
 from .notionapi import NotionAPI, Bucket
 
@@ -18,7 +19,7 @@ class TimeTracker:
 
         # Confirm Input
         if self._get_input_confirmation(parsed_input) not in ["y", "yes"]:
-            return
+            self.run()
 
         # Send POST request with new time entry
         db_page = self.notionAPI.build_db_page(parsed_input["description"], parsed_input["bucket"], parsed_input["dates"])
@@ -105,7 +106,7 @@ class TimeTracker:
         return {"bucket": bucket, "description": description, "dates": [start, end]}
 
     def _get_input_bucket(self) -> str:
-        prompt = "Available Buckets:\n" + "\n".join(f"  {i} - {b.name}" for i, b in enumerate(self.notionAPI.buckets)) + "\nChoose Bucket\n> "
+        prompt = "Available Buckets:\n" + "\n".join(f"  {i} - [{b.area}] {b.name}" for i, b in enumerate(self.notionAPI.buckets)) + "\nChoose Bucket\n> "
         return input(prompt).strip()
 
     def _get_input_confirmation(self, parsed_input: dict):

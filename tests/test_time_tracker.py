@@ -1,8 +1,9 @@
 from io import StringIO
 import pytest
 import datetime
-from time_tracker.time_tracker import TimeTracker, ConfigClass
+from time_tracker.time_tracker import TimeTracker
 from time_tracker import notionapi
+from time_tracker.config import ConfigClass
 
 
 @pytest.fixture
@@ -31,7 +32,7 @@ def patch_datetime_date(monkeypatch):
 
 @pytest.fixture
 def configuration():
-    return ConfigClass(10, "", "https://localhost", "", "https://localhost", "https://localhost", "super secret api token")
+    return ConfigClass(10, "", "https://localhost", "", "https://localhost", "https://localhost")
 
 
 @pytest.fixture
