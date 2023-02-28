@@ -35,6 +35,15 @@ class ConfigClass:
         }
         self.payload_curr_last_week = {"page_size": 100, "filter": curr_last_week_sentric_filter}
 
+    def __str__(self) -> str:
+        out = f"weekly_hours: {self.weekly_hours}\n"
+        out += f"buckets_db_id: {self.buckets_db_id}\n"
+        out += f"buckets_query_url: {self.buckets_db_id}\n"
+        out += f"time_entries_db_id: {self.time_entries_db_id}\n"
+        out += f"time_entries_query_url: {self.time_entries_query_url}\n"
+        out += f"new_page_url: {self.new_page_url}\n"
+        return f"{out}bucket_area: {self.bucket_area}"
+
 
 def load_config():
     cfg_loc = pathlib.Path(appdirs.site_config_dir(appname="time_tracker", appauthor="H3isenb3rg")) / "config.toml"

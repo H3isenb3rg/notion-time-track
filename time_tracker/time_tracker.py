@@ -9,7 +9,18 @@ class TimeTracker:
         self.configs = configuration
         self.notionAPI = NotionAPI(self.configs)
 
-    def run(self):
+    def launch(self):
+        print("Welcome to the Notion time tracker API!")
+        while True:
+            action = input("What would like to do?(1->Time, 2->Settings)\n> ")
+            if action.isdigit() and int(action) in (1, 2):
+                break
+            print("Invalid input!")
+
+        # if int()
+
+    def run_time_tracker(self):
+        print(self.configs)
         curr_week_hours, last_week_hours = self.notionAPI.retrieve_hours()
         print(f"Current week hours -> {curr_week_hours}")
         self.print_diff(last_week_hours, curr_week_hours)
@@ -19,7 +30,7 @@ class TimeTracker:
 
         # Confirm Input
         if self._get_input_confirmation(parsed_input) not in ["y", "yes"]:
-            self.run()
+            self.run_time_tracker()
 
         # Send POST request with new time entry
         db_page = self.notionAPI.build_db_page(parsed_input["description"], parsed_input["bucket"], parsed_input["dates"])
