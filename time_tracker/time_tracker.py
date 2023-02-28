@@ -1,26 +1,29 @@
 import re, datetime
 
-from .config import ConfigClass
+from .config import ConfigClass, CFG_LOC
 from .notionapi import NotionAPI, Bucket
 
 
 class TimeTracker:
+    AVAILABLE_ACTIONS: tuple = ("time", "settings")
+
     def __init__(self, configuration: ConfigClass) -> None:
         self.configs = configuration
         self.notionAPI = NotionAPI(self.configs)
 
     def launch(self):
         print("Welcome to the Notion time tracker API!")
-        while True:
-            action = input("What would like to do?(1->Time, 2->Settings)\n> ")
-            if action.isdigit() and int(action) in (1, 2):
-                break
-            print("Invalid input!")
 
-        # if int()
+        action = self._get_main_action()
+        if action == "time":
+            self.run_time_tracker()
+            return
+
+        if action == "settings":
+            self.run_settings()
+            self.launch()
 
     def run_time_tracker(self):
-        print(self.configs)
         curr_week_hours, last_week_hours = self.notionAPI.retrieve_hours()
         print(f"Current week hours -> {curr_week_hours}")
         self.print_diff(last_week_hours, curr_week_hours)
@@ -37,6 +40,12 @@ class TimeTracker:
         self.notionAPI.send_time_entry(db_page)
 
         print("New time entry successfully added!")
+
+    def run_settings(self):
+        print("Current Settings:")
+        print(f"1. Weekly Sentric Hours: {self.configs.weekly_hours}")
+        print(f"2. Bucket Area: {self.configs.bucket_area}")
+        print(f"Settings available at: {CFG_LOC}")
 
     def print_diff(self, last_week_hours: float, curr_week_hours: float):
         diff = self.configs.weekly_hours - last_week_hours
@@ -123,3 +132,16 @@ class TimeTracker:
     def _get_input_confirmation(self, parsed_input: dict):
         prompt = "\nConfirm Data? (Y/N)\n" + "\n".join(f"  {key} -> {value}" for key, value in parsed_input.items()) + "\n> "
         return input(prompt).strip().lower()
+
+    def _get_main_action(self):
+        prompt = f"What would you like to do? ({', '.join(f'{i}->{option.capitalize()}' for i, option in enumerate(self.AVAILABLE_ACTIONS))})\n> "
+        while True:
+            action = input(prompt).strip().lower()
+            try:
+                action = int(action)
+                if action >= 0 and action < len(self.AVAILABLE_ACTIONS):
+                    return self.AVAILABLE_ACTIONS[action]
+            except ValueError:
+                if action in self.AVAILABLE_ACTIONS:
+                    return action
+            print("Invalid input!")

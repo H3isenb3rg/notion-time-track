@@ -1,7 +1,10 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 import pathlib, toml, appdirs
 
 from . import constants
+
+
+CFG_LOC = pathlib.Path(appdirs.site_config_dir(appname="time_tracker", appauthor="H3isenb3rg")) / "config.toml"
 
 
 @dataclass
@@ -13,6 +16,9 @@ class ConfigClass:
     time_entries_query_url: str = field(default="https://api.notion.com/v1/databases/061a26b964d041c397e0b323220c6e8c/query")
     new_page_url: str = field(default="https://api.notion.com/v1/pages")
     bucket_area: str | None = field(default=None)
+
+    def dict(self):
+        return asdict(self)
 
     def __post_init__(self):
         token = constants.NOTION_API_TOKEN
@@ -36,22 +42,15 @@ class ConfigClass:
         self.payload_curr_last_week = {"page_size": 100, "filter": curr_last_week_sentric_filter}
 
     def __str__(self) -> str:
-        out = f"weekly_hours: {self.weekly_hours}\n"
-        out += f"buckets_db_id: {self.buckets_db_id}\n"
-        out += f"buckets_query_url: {self.buckets_db_id}\n"
-        out += f"time_entries_db_id: {self.time_entries_db_id}\n"
-        out += f"time_entries_query_url: {self.time_entries_query_url}\n"
-        out += f"new_page_url: {self.new_page_url}\n"
-        return f"{out}bucket_area: {self.bucket_area}"
+        config_dict = self.dict()
+        return "\n".join(f"{key}: {config_dict[key]}" for key in config_dict)
 
 
 def load_config():
-    cfg_loc = pathlib.Path(appdirs.site_config_dir(appname="time_tracker", appauthor="H3isenb3rg")) / "config.toml"
-
-    if not cfg_loc.exists():
-        cfg_loc.parent.mkdir(parents=True, exist_ok=True)
-        with open(cfg_loc, "w") as f:
+    if not CFG_LOC.exists():
+        CFG_LOC.parent.mkdir(parents=True, exist_ok=True)
+        with open(CFG_LOC, "w") as f:
             toml.dump(constants.DEFAULT_CONFIG, f)
-        print(f"Initialized new default config at {cfg_loc}.")
+        print(f"Initialized new default config at {CFG_LOC}.")
 
-    return ConfigClass(**toml.load(cfg_loc))
+    return ConfigClass(**toml.load(CFG_LOC))

@@ -4,7 +4,7 @@ from .config import load_config
 import requests
 
 try:
-    TimeTracker(load_config()).run_time_tracker()
+    TimeTracker(load_config()).launch()
 except requests.exceptions.HTTPError as e:
     print(f"Received HTTPError:\n\t{e}")
 except KeyboardInterrupt:
