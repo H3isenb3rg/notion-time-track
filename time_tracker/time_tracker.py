@@ -2,10 +2,11 @@ import re, datetime
 
 from .config import ConfigClass, CFG_LOC
 from .notionapi import NotionAPI, Bucket
+from .timeentry import build_db_page
 
 
 class TimeTracker:
-    AVAILABLE_ACTIONS: tuple = ("time", "settings")
+    AVAILABLE_ACTIONS: tuple = ("time", "recap", "settings")
 
     def __init__(self, configuration: ConfigClass) -> None:
         self.configs = configuration
@@ -21,7 +22,11 @@ class TimeTracker:
 
         if action == "settings":
             self.run_settings()
-            self.launch()
+            return
+
+        if action == "recap":
+            print(self.notionAPI.build_recap())
+            return
 
     def run_time_tracker(self):
         curr_week_hours, last_week_hours = self.notionAPI.retrieve_hours()
@@ -29,14 +34,14 @@ class TimeTracker:
         self.print_diff(last_week_hours, curr_week_hours)
 
         # Get new time entry
-        parsed_input = self.get_input_dict()
+        parsed_input = self.get_new_entry()
 
         # Confirm Input
         if self._get_input_confirmation(parsed_input) not in ["y", "yes"]:
             self.run_time_tracker()
 
         # Send POST request with new time entry
-        db_page = self.notionAPI.build_db_page(parsed_input["description"], parsed_input["bucket"], parsed_input["dates"])
+        db_page = build_db_page(parsed_input["description"], parsed_input["bucket"], parsed_input["dates"], self.configs.time_entries_db_id)
         self.notionAPI.send_time_entry(db_page)
 
         print("New time entry successfully added!")
@@ -118,7 +123,7 @@ class TimeTracker:
 
         return raw_times
 
-    def get_input_dict(self) -> dict:
+    def get_new_entry(self) -> dict:
         bucket = self.get_bucket()
         description = self.get_description()
         start, end = self.get_times()
