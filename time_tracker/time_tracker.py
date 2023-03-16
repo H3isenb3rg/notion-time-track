@@ -3,7 +3,7 @@ import re, datetime
 from .config import ConfigClass, CFG_LOC
 from .notionapi import NotionAPI, Bucket
 from .timeentry import build_db_page
-from .richprinter import print_options_as_tree, print_title
+from .richprinter import print_options_as_tree, print_title, print_markdown
 
 
 class TimeTracker:
@@ -19,19 +19,24 @@ class TimeTracker:
         action = self._get_main_action()
         if action == "time":
             self.run_time_tracker()
+            input("\nPress Enter to continue")
             return
 
         if action == "settings":
             self.run_settings()
+            input("\nPress Enter to continue")
             return
 
         if action == "recap":
-            print(self.notionAPI.build_recap())
+            recap_dict = self.notionAPI.build_recap()
+            for key in recap_dict:
+                print_options_as_tree(key, recap_dict[key], add_index=False)
+            input("\nPress Enter to continue")
             return
 
     def run_time_tracker(self):
         curr_week_hours, last_week_hours = self.notionAPI.retrieve_hours()
-        print(f"Current week hours -> {curr_week_hours}")
+        print_markdown(f"Current week hours &rarr; {curr_week_hours}")
         self.print_diff(last_week_hours, curr_week_hours)
 
         # Get new time entry
@@ -45,23 +50,23 @@ class TimeTracker:
         db_page = build_db_page(parsed_input["description"], parsed_input["bucket"], parsed_input["dates"], self.configs.time_entries_db_id)
         self.notionAPI.send_time_entry(db_page)
 
-        print("New time entry successfully added!")
+        print_markdown("New time entry successfully added!", style="green bold")
 
     def run_settings(self):
-        print("Current Settings:")
-        print(f"1. Weekly Sentric Hours: {self.configs.weekly_hours}")
-        print(f"2. Bucket Area: {self.configs.bucket_area}")
-        print(f"Settings available at: {CFG_LOC}")
+        print_options_as_tree(
+            "Current Settings", [f"Weekly Sentric Hours: {self.configs.weekly_hours}", f"Bucket Area: {self.configs.bucket_area}"], add_index=False
+        )
+        print_markdown(f"Settings available at: {CFG_LOC}")
 
     def print_diff(self, last_week_hours: float, curr_week_hours: float):
         diff = self.configs.weekly_hours - last_week_hours
         if diff > 0:
-            print(f"Hours pending from last week -> {diff}")
+            print_markdown(f"Hours pending from last week &rarr; {diff}")
 
         if diff < 0:
-            print(f"Hours overflowed from last week -> {abs(diff)}")
+            print_markdown(f"Hours overflowed from last week &rarr; {abs(diff)}")
 
-        print(f"Remaining hours -> {self.configs.weekly_hours + diff - curr_week_hours}")
+        print_markdown(f"Remaining hours &rarr; {self.configs.weekly_hours + diff - curr_week_hours}")
 
     def get_bucket(self) -> Bucket:
         while True:
@@ -70,12 +75,12 @@ class TimeTracker:
             try:
                 return self.notionAPI.buckets[int(bucket)]
             except IndexError:
-                print(f"Illegal index {bucket} - Only {len(self.notionAPI.buckets)} available")
+                print_markdown(f"Illegal index {bucket} - Only {len(self.notionAPI.buckets)} available", style="red")
             except ValueError:
                 try:
                     return self.notionAPI.buckets[self.notionAPI.buckets.index(bucket)]  # type: ignore
                 except ValueError:
-                    print("Illegal Bucket")
+                    print_markdown("Illegal Bucket", style="red")
 
     def get_description(self) -> str:
         while True:
@@ -97,18 +102,18 @@ class TimeTracker:
             try:
                 raw_times = self._get_raw_times()
             except ValueError:
-                print("Missing time stamp")
+                print_markdown("Missing time stamp", style="red")
                 continue
 
             try:
                 start_time = self.build_time(raw_times[0])
                 end_time = self.build_time(raw_times[1])
             except ValueError:
-                print("Wrong Time values. Insert valid 24h times")
+                print_markdown("Wrong Time values. Insert valid 24h times", style="red")
                 continue
 
             if start_time == end_time:
-                print(f"Same time for start and end found: {start_time}")
+                print_markdown(f"Same time for start and end found: {start_time}", style="red")
                 continue
 
             if start_time > end_time:
@@ -132,12 +137,12 @@ class TimeTracker:
         return {"bucket": bucket, "description": description, "dates": [start, end]}
 
     def _get_input_bucket(self) -> str:
-        prompt = "Available Buckets:\n" + "\n".join(f"  {i} - [{b.area}] {b.name}" for i, b in enumerate(self.notionAPI.buckets)) + "\nChoose Bucket\n> "
-        return input(prompt).strip()
+        print_options_as_tree("Available Buckets", self.notionAPI.buckets)
+        return input("Choose Bucket\n> ").strip()
 
     def _get_input_confirmation(self, parsed_input: dict):
-        prompt = "\nConfirm Data? (Y/N)\n" + "\n".join(f"  {key} -> {value}" for key, value in parsed_input.items()) + "\n> "
-        return input(prompt).strip().lower()
+        print_options_as_tree("Confirm Data?", [f"{key} &rarr; {value}" for key, value in parsed_input.items()], add_index=False)
+        return input("(y/n)> ").strip().lower()
 
     def _get_main_action(self):
         print_options_as_tree("What would you like to do?", self.AVAILABLE_ACTIONS)
@@ -150,4 +155,4 @@ class TimeTracker:
             except ValueError:
                 if action in self.AVAILABLE_ACTIONS:
                     return action
-            print("Invalid input!")
+            print_markdown("Invalid input!")

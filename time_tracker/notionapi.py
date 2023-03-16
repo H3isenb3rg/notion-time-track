@@ -1,4 +1,5 @@
 import requests, json
+from typing import Iterable
 
 from .config import ConfigClass
 from .timeentry import TimeEntry, parse_time_entry
@@ -16,12 +17,9 @@ class NotionAPI:
         last_week_hours = self._sum_hours(filter(lambda x: x.last_week, time_entries))
         return curr_week_hours, last_week_hours
 
-    def build_recap(self):
+    def build_recap(self) -> dict[str, Iterable[TimeEntry]]:
         time_entries = self._get_curr_last_week()
-        curr_week = self._week_recap("Current Week", list(filter(lambda x: x.current_week, time_entries)))
-        last_week = self._week_recap("Last Week", list(filter(lambda x: x.last_week, time_entries)))
-
-        return curr_week + last_week
+        return {"Current Week": filter(lambda x: x.current_week, time_entries), "Last Week": filter(lambda x: x.last_week, time_entries)}
 
     def _week_recap(self, week: str, entries: list[TimeEntry]) -> str:
         if len(entries) <= 0:
@@ -29,20 +27,17 @@ class NotionAPI:
 
         recap = f"{week} ({self._sum_hours(entries)}h)\n"
         for entry in entries:
-            recap += f"\t[{entry.bucket_area}]{self.get_bucket_by_id(entry.bucket_id).name} - {entry.name} ({entry.hours}h)\n"
+            recap += f"\t{entry}\n"
         return recap
-
-    def get_bucket_by_id(self, id: str) -> Bucket:
-        return list(filter(lambda x: x.id == id, self.buckets))[0]
 
     def send_time_entry(self, db_page):
         self._post_request(self.config.new_page_url, db_page, self.config.headers)
 
     def _get_curr_last_week(self):
         raw_entries = self._post_request(self.config.time_entries_query_url, self.config.payload_curr_last_week, self.config.headers)["results"]
-        return [parse_time_entry(entry) for entry in raw_entries]
+        return [parse_time_entry(entry, self.buckets) for entry in raw_entries]
 
-    def _sum_hours(self, entries_list: list[TimeEntry]):
+    def _sum_hours(self, entries_list: Iterable[TimeEntry]):
         return sum(float(entry.hours) for entry in entries_list)
 
     def _post_request(self, url: str, json_payload: dict, headers: dict):

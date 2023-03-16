@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Iterable
 
 from .bucket import Bucket
 
@@ -14,6 +15,10 @@ class TimeEntry:
     times: tuple[str, str] = field()
     hours: float = field()
     name: str = field()
+    bucket_name: str | None = field(default=None)
+
+    def __str__(self) -> str:
+        return f"[{self.bucket_area}]{self.bucket_name or self.bucket_id} - {self.name} ({self.hours}h)"
 
 
 def get_boolean(raw_entry, property) -> bool:
@@ -25,7 +30,7 @@ def get_times(raw_entry):
     return (date["start"], date["end"])
 
 
-def parse_time_entry(raw_entry):
+def parse_time_entry(raw_entry, buckets: None | Iterable[Bucket] = None):
     _id: str = raw_entry["id"]
     properties = raw_entry["properties"]
     bucket_area: str = properties["Bucket Area"]["rollup"]["array"][0]["select"]["name"]
@@ -36,6 +41,10 @@ def parse_time_entry(raw_entry):
     times: tuple[str, str] = get_times(raw_entry)
     hours: float = properties["Hours"]["formula"]["number"]
     name: str = properties["Name"]["title"][0]["plain_text"]
+
+    if buckets:
+        bucket_name = list(filter(lambda x: x.id == bucket_id, buckets))[0]
+        return TimeEntry(_id, bucket_area, bucket_id, is_sentric, last_week, current_week, times, hours, name, bucket_name.name)
 
     return TimeEntry(_id, bucket_area, bucket_id, is_sentric, last_week, current_week, times, hours, name)
 
