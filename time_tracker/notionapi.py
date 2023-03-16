@@ -46,7 +46,7 @@ class NotionAPI:
         return sum(float(entry.hours) for entry in entries_list)
 
     def _post_request(self, url: str, json_payload: dict, headers: dict):
-        response = requests.post(url, json=json_payload, headers=headers)
+        response = requests.post(url, json=json_payload, headers=headers, timeout=5)
         response.raise_for_status()
         return json.loads(response.text)
 

@@ -3,6 +3,7 @@ import re, datetime
 from .config import ConfigClass, CFG_LOC
 from .notionapi import NotionAPI, Bucket
 from .timeentry import build_db_page
+from .richprinter import print_options_as_tree, print_title
 
 
 class TimeTracker:
@@ -13,7 +14,7 @@ class TimeTracker:
         self.notionAPI = NotionAPI(self.configs)
 
     def launch(self):
-        print("Welcome to the Notion time tracker API!")
+        print_title("Welcome to the Notion time tracker API!")
 
         action = self._get_main_action()
         if action == "time":
@@ -139,9 +140,9 @@ class TimeTracker:
         return input(prompt).strip().lower()
 
     def _get_main_action(self):
-        prompt = f"What would you like to do? ({', '.join(f'{i}->{option.capitalize()}' for i, option in enumerate(self.AVAILABLE_ACTIONS))})\n> "
+        print_options_as_tree("What would you like to do?", self.AVAILABLE_ACTIONS)
         while True:
-            action = input(prompt).strip().lower()
+            action = input("> ").strip().lower()
             try:
                 action = int(action)
                 if action >= 0 and action < len(self.AVAILABLE_ACTIONS):
