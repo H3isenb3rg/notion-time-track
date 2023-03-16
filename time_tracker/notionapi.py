@@ -1,26 +1,8 @@
-from dataclasses import dataclass, field
 import requests, json
 
 from .config import ConfigClass
-
-
-@dataclass
-class Bucket:
-    id: str = field()
-    name: str = field()
-    area: str = field()
-
-    def __eq__(self, __o: object) -> bool:
-        if isinstance(__o, str):
-            return __o.lower() == self.name.lower()
-
-        if isinstance(__o, Bucket):
-            return __o.name.lower() == self.name.lower()
-
-        raise TypeError(f"Object of type {type(__o)} can't be compared with a Bucket")
-
-    def __str__(self) -> str:
-        return f"{self.name} ({self.area})"
+from .timeentry import TimeEntry, parse_time_entry
+from .bucket import Bucket, parse_bucket
 
 
 class NotionAPI:
@@ -29,37 +11,48 @@ class NotionAPI:
         self.buckets = self._get_sentric_buckets()
 
     def retrieve_hours(self):
-        json_obj = self._post_request(self.config.time_entries_query_url, self.config.payload_curr_last_week, self.config.headers)
-        curr_week_hours = self._count_week_hours(json_obj["results"])
-        last_week_hours = self._count_week_hours(json_obj["results"], curr_week=False)
+        time_entries = self._get_curr_last_week()
+        curr_week_hours = self._sum_hours(filter(lambda x: x.current_week, time_entries))
+        last_week_hours = self._sum_hours(filter(lambda x: x.last_week, time_entries))
         return curr_week_hours, last_week_hours
 
-    def build_db_page(self, description: str, bucket: Bucket, times: list[str]):
-        parent = {"type": "database_id", "database_id": self.config.time_entries_db_id}
+    def build_recap(self):
+        time_entries = self._get_curr_last_week()
+        curr_week = self._week_recap("Current Week", list(filter(lambda x: x.current_week, time_entries)))
+        last_week = self._week_recap("Last Week", list(filter(lambda x: x.last_week, time_entries)))
 
-        properties = {"Name": self._build_name(description), "Bucket": self._build_bucket(bucket.id), "Start Time": self._build_start_time(times[0], times[1])}
+        return curr_week + last_week
 
-        return {"parent": parent, "properties": properties}
+    def _week_recap(self, week: str, entries: list[TimeEntry]) -> str:
+        if len(entries) <= 0:
+            return week + "\n\tNo Time entries\n"
+
+        recap = f"{week} ({self._sum_hours(entries)}h)\n"
+        for entry in entries:
+            recap += f"\t[{entry.bucket_area}]{self.get_bucket_by_id(entry.bucket_id).name} - {entry.name} ({entry.hours}h)\n"
+        return recap
+
+    def get_bucket_by_id(self, id: str) -> Bucket:
+        return list(filter(lambda x: x.id == id, self.buckets))[0]
 
     def send_time_entry(self, db_page):
         self._post_request(self.config.new_page_url, db_page, self.config.headers)
 
-    def _count_week_hours(self, results_list, curr_week: bool = True):
-        week = "Current Week" if curr_week else "Last Week"
-        return sum(float(record["properties"]["Hours"]["formula"]["number"]) for record in results_list if record["properties"][week]["formula"]["boolean"])
+    def _get_curr_last_week(self):
+        raw_entries = self._post_request(self.config.time_entries_query_url, self.config.payload_curr_last_week, self.config.headers)["results"]
+        return [parse_time_entry(entry) for entry in raw_entries]
+
+    def _sum_hours(self, entries_list: list[TimeEntry]):
+        return sum(float(entry.hours) for entry in entries_list)
 
     def _post_request(self, url: str, json_payload: dict, headers: dict):
-        response = requests.post(url, json=json_payload, headers=headers)
+        response = requests.post(url, json=json_payload, headers=headers, timeout=5)
         response.raise_for_status()
         return json.loads(response.text)
 
     def _get_sentric_buckets(self) -> list[Bucket]:
-        json_obj = self._post_request(self.config.buckets_query_url, self.config.payload_sentric_buckets, self.config.headers)
-
-        return sorted([
-            Bucket(page["id"], page["properties"]["Name"]["title"][0]["plain_text"], page["properties"]["Area"]["select"]["name"])
-            for page in json_obj["results"]
-        ], key=lambda b: b.area)
+        json_obj = self._post_request(self.config.buckets_query_url, self.config.payload_sentric_buckets, self.config.headers)["results"]
+        return sorted([parse_bucket(page) for page in json_obj], key=lambda b: b.area)
 
     def _build_name(self, page_name: str) -> dict:
         return {"type": "title", "title": [{"type": "text", "text": {"content": page_name}}]}

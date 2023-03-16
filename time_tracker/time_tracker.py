@@ -1,31 +1,57 @@
 import re, datetime
 
-from .config import ConfigClass
+from .config import ConfigClass, CFG_LOC
 from .notionapi import NotionAPI, Bucket
+from .timeentry import build_db_page
+from .richprinter import print_options_as_tree, print_title
 
 
 class TimeTracker:
+    AVAILABLE_ACTIONS: tuple = ("time", "recap", "settings")
+
     def __init__(self, configuration: ConfigClass) -> None:
         self.configs = configuration
         self.notionAPI = NotionAPI(self.configs)
 
-    def run(self):
+    def launch(self):
+        print_title("Welcome to the Notion time tracker API!")
+
+        action = self._get_main_action()
+        if action == "time":
+            self.run_time_tracker()
+            return
+
+        if action == "settings":
+            self.run_settings()
+            return
+
+        if action == "recap":
+            print(self.notionAPI.build_recap())
+            return
+
+    def run_time_tracker(self):
         curr_week_hours, last_week_hours = self.notionAPI.retrieve_hours()
         print(f"Current week hours -> {curr_week_hours}")
         self.print_diff(last_week_hours, curr_week_hours)
 
         # Get new time entry
-        parsed_input = self.get_input_dict()
+        parsed_input = self.get_new_entry()
 
         # Confirm Input
         if self._get_input_confirmation(parsed_input) not in ["y", "yes"]:
-            self.run()
+            self.run_time_tracker()
 
         # Send POST request with new time entry
-        db_page = self.notionAPI.build_db_page(parsed_input["description"], parsed_input["bucket"], parsed_input["dates"])
+        db_page = build_db_page(parsed_input["description"], parsed_input["bucket"], parsed_input["dates"], self.configs.time_entries_db_id)
         self.notionAPI.send_time_entry(db_page)
 
         print("New time entry successfully added!")
+
+    def run_settings(self):
+        print("Current Settings:")
+        print(f"1. Weekly Sentric Hours: {self.configs.weekly_hours}")
+        print(f"2. Bucket Area: {self.configs.bucket_area}")
+        print(f"Settings available at: {CFG_LOC}")
 
     def print_diff(self, last_week_hours: float, curr_week_hours: float):
         diff = self.configs.weekly_hours - last_week_hours
@@ -98,7 +124,7 @@ class TimeTracker:
 
         return raw_times
 
-    def get_input_dict(self) -> dict:
+    def get_new_entry(self) -> dict:
         bucket = self.get_bucket()
         description = self.get_description()
         start, end = self.get_times()
@@ -112,3 +138,16 @@ class TimeTracker:
     def _get_input_confirmation(self, parsed_input: dict):
         prompt = "\nConfirm Data? (Y/N)\n" + "\n".join(f"  {key} -> {value}" for key, value in parsed_input.items()) + "\n> "
         return input(prompt).strip().lower()
+
+    def _get_main_action(self):
+        print_options_as_tree("What would you like to do?", self.AVAILABLE_ACTIONS)
+        while True:
+            action = input("> ").strip().lower()
+            try:
+                action = int(action)
+                if action >= 0 and action < len(self.AVAILABLE_ACTIONS):
+                    return self.AVAILABLE_ACTIONS[action]
+            except ValueError:
+                if action in self.AVAILABLE_ACTIONS:
+                    return action
+            print("Invalid input!")
