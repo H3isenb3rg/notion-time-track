@@ -36,7 +36,7 @@ class TimeTracker:
 
     def run_time_tracker(self):
         curr_week_hours, last_week_hours = self.notionAPI.retrieve_hours()
-        print_markdown(f"Current week hours &rarr; {curr_week_hours}")
+        print_markdown(f"Current week hours &rarr; {curr_week_hours}", style="yellow")
         self.print_diff(last_week_hours, curr_week_hours)
 
         # Get new time entry
@@ -61,12 +61,12 @@ class TimeTracker:
     def print_diff(self, last_week_hours: float, curr_week_hours: float):
         diff = self.configs.weekly_hours - last_week_hours
         if diff > 0:
-            print_markdown(f"Hours pending from last week &rarr; {diff}")
+            print_markdown(f"Hours pending from last week &rarr; {diff}", style="yellow")
 
         if diff < 0:
-            print_markdown(f"Hours overflowed from last week &rarr; {abs(diff)}")
+            print_markdown(f"Hours overflowed from last week &rarr; {abs(diff)}", style="yellow")
 
-        print_markdown(f"Remaining hours &rarr; {self.configs.weekly_hours + diff - curr_week_hours}")
+        print_markdown(f"Remaining hours &rarr; {self.configs.weekly_hours + diff - curr_week_hours}", style="yellow")
 
     def get_bucket(self) -> Bucket:
         while True:
