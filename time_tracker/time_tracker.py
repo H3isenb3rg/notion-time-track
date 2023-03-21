@@ -15,6 +15,9 @@ class TimeTracker:
 
     def launch(self):
         print_title("Welcome to the Notion time tracker API!")
+        curr_week_hours, last_week_hours = self.notionAPI.retrieve_hours()
+        print_markdown(f"Current week hours &rarr; {curr_week_hours}")
+        self.print_diff(last_week_hours, curr_week_hours)
 
         action = self._get_main_action()
         if action == "time":
@@ -35,10 +38,6 @@ class TimeTracker:
             return
 
     def run_time_tracker(self):
-        curr_week_hours, last_week_hours = self.notionAPI.retrieve_hours()
-        print_markdown(f"Current week hours &rarr; {curr_week_hours}", style="yellow")
-        self.print_diff(last_week_hours, curr_week_hours)
-
         # Get new time entry
         parsed_input = self.get_new_entry()
 
@@ -47,14 +46,24 @@ class TimeTracker:
             self.run_time_tracker()
 
         # Send POST request with new time entry
-        db_page = build_db_page(parsed_input["description"], parsed_input["bucket"], parsed_input["dates"], self.configs.time_entries_db_id)
+        db_page = build_db_page(
+            parsed_input["description"],
+            parsed_input["bucket"],
+            parsed_input["dates"],
+            self.configs.time_entries_db_id,
+        )
         self.notionAPI.send_time_entry(db_page)
 
         print_markdown("New time entry successfully added!", style="green bold")
 
     def run_settings(self):
         print_options_as_tree(
-            "Current Settings", [f"Weekly Sentric Hours: {self.configs.weekly_hours}", f"Bucket Area: {self.configs.bucket_area}"], add_index=False
+            "Current Settings",
+            [
+                f"Weekly Sentric Hours: {self.configs.weekly_hours}",
+                f"Bucket Area: {self.configs.bucket_area}",
+            ],
+            add_index=False,
         )
         print_markdown(f"Settings available at: {CFG_LOC}")
 
@@ -64,9 +73,13 @@ class TimeTracker:
             print_markdown(f"Hours pending from last week &rarr; {diff}", style="yellow")
 
         if diff < 0:
-            print_markdown(f"Hours overflowed from last week &rarr; {abs(diff)}", style="yellow")
+            print_markdown(f"Hours overflowed from last week &rarr; {abs(diff)}", style="green")
 
-        print_markdown(f"Remaining hours &rarr; {self.configs.weekly_hours + diff - curr_week_hours}", style="yellow")
+        remaining_hours = self.configs.weekly_hours + diff - curr_week_hours
+        print_markdown(
+            f"Remaining hours &rarr; {remaining_hours}",
+            style="yellow" if remaining_hours < self.configs.weekly_hours else "green",
+        )
 
     def get_bucket(self) -> Bucket:
         while True:
@@ -75,10 +88,13 @@ class TimeTracker:
             try:
                 return self.notionAPI.buckets[int(bucket)]
             except IndexError:
-                print_markdown(f"Illegal index {bucket} - Only {len(self.notionAPI.buckets)} available", style="red")
+                print_markdown(
+                    f"Illegal index {bucket} - Only {len(self.notionAPI.buckets)} available",
+                    style="red",
+                )
             except ValueError:
                 try:
-                    return self.notionAPI.buckets[self.notionAPI.buckets.index(bucket)]  # type: ignore
+                    return self.notionAPI.buckets[self.notionAPI.buckets.index(bucket)]
                 except ValueError:
                     print_markdown("Illegal Bucket", style="red")
 
@@ -95,7 +111,9 @@ class TimeTracker:
 
     def today_with_time(self, time: datetime.time) -> str:
         today = datetime.date.today()
-        return datetime.datetime(today.year, today.month, today.day, time.hour, time.minute, time.second).isoformat()
+        return datetime.datetime(
+            today.year, today.month, today.day, time.hour, time.minute, time.second
+        ).isoformat()
 
     def get_times(self) -> tuple[str, str]:
         while True:
@@ -141,7 +159,11 @@ class TimeTracker:
         return input("Choose Bucket\n> ").strip()
 
     def _get_input_confirmation(self, parsed_input: dict):
-        print_options_as_tree("Confirm Data?", [f"{key} &rarr; {value}" for key, value in parsed_input.items()], add_index=False)
+        print_options_as_tree(
+            "Confirm Data?",
+            [f"{key} &rarr; {value}" for key, value in parsed_input.items()],
+            add_index=False,
+        )
         return input("(y/n)> ").strip().lower()
 
     def _get_main_action(self):
