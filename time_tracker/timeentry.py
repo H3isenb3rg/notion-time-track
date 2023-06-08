@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Iterable
+from datetime import datetime
 
 from .bucket import Bucket
 
@@ -17,8 +18,19 @@ class TimeEntry:
     name: str = field()
     bucket_name: str | None = field(default=None)
 
+    def str_times(self):
+        start_time = datetime.fromisoformat(self.times[0])
+        date = start_time.date()
+        start_time = f"{start_time.hour}:{start_time.minute:0>2}"
+        end_time = datetime.fromisoformat(self.times[1])
+        end_time = f"{end_time.hour}:{end_time.minute:0>2}"
+        return f"{date} {start_time} - {end_time} ({self.hours}h)"
+
+    def str_details(self):
+        return f"[{self.bucket_area}]{self.bucket_name or self.bucket_id} - {self.name}"
+
     def __str__(self) -> str:
-        return f"[{self.bucket_area}]{self.bucket_name or self.bucket_id} - {self.name} ({self.hours}h)"
+        return f"{self.str_times()}\t{self.str_details()}"
 
 
 def get_boolean(raw_entry, property) -> bool:

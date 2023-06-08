@@ -65,6 +65,8 @@ class TimeTracker:
             ],
             add_index=False,
         )
+        # clickable link -> not working in cmd
+        # cfg_loc_link = f"\u001b]8;;{CFG_LOC}\u001b\\{CFG_LOC}\u001b]8;;\u001b\\"
         print_markdown(f"Settings available at: {CFG_LOC}")
 
     def print_diff(self, last_week_hours: float, curr_week_hours: float):
@@ -94,7 +96,7 @@ class TimeTracker:
                 )
             except ValueError:
                 try:
-                    return self.notionAPI.buckets[self.notionAPI.buckets.index(bucket)]
+                    return self.notionAPI.buckets[self.notionAPI.buckets.index(bucket)]  # type: ignore
                 except ValueError:
                     print_markdown("Illegal Bucket", style="red")
 
@@ -111,9 +113,7 @@ class TimeTracker:
 
     def today_with_time(self, time: datetime.time) -> str:
         today = datetime.date.today()
-        return datetime.datetime(
-            today.year, today.month, today.day, time.hour, time.minute, time.second
-        ).isoformat()
+        return datetime.datetime(today.year, today.month, today.day, time.hour, time.minute, time.second).isoformat()
 
     def get_times(self) -> tuple[str, str]:
         while True:

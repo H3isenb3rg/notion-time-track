@@ -19,7 +19,12 @@ class NotionAPI:
 
     def build_recap(self) -> dict[str, Iterable[TimeEntry]]:
         time_entries = self._get_curr_last_week()
-        return {"Current Week": filter(lambda x: x.current_week, time_entries), "Last Week": filter(lambda x: x.last_week, time_entries)}
+        current_week_entries = list(filter(lambda x: x.current_week, time_entries))
+        last_week_entries = list(filter(lambda x: x.last_week, time_entries))
+        return {
+            f"Current Week ({self._sum_hours(current_week_entries)}h)": current_week_entries,
+            f"Last Week ({self._sum_hours(last_week_entries)}h)": last_week_entries,
+        }
 
     def _week_recap(self, week: str, entries: list[TimeEntry]) -> str:
         if len(entries) <= 0:
@@ -34,7 +39,11 @@ class NotionAPI:
         self._post_request(self.config.new_page_url, db_page, self.config.headers)
 
     def _get_curr_last_week(self):
-        raw_entries = self._post_request(self.config.time_entries_query_url, self.config.payload_curr_last_week, self.config.headers)["results"]
+        raw_entries = self._post_request(
+            self.config.time_entries_query_url,
+            self.config.payload_curr_last_week,
+            self.config.headers,
+        )["results"]
         return [parse_time_entry(entry, self.buckets) for entry in raw_entries]
 
     def _sum_hours(self, entries_list: Iterable[TimeEntry]):
@@ -46,14 +55,24 @@ class NotionAPI:
         return json.loads(response.text)
 
     def _get_sentric_buckets(self) -> list[Bucket]:
-        json_obj = self._post_request(self.config.buckets_query_url, self.config.payload_sentric_buckets, self.config.headers)["results"]
+        json_obj = self._post_request(
+            self.config.buckets_query_url,
+            self.config.payload_sentric_buckets,
+            self.config.headers,
+        )["results"]
         return sorted([parse_bucket(page) for page in json_obj], key=lambda b: b.area)
 
     def _build_name(self, page_name: str) -> dict:
-        return {"type": "title", "title": [{"type": "text", "text": {"content": page_name}}]}
+        return {
+            "type": "title",
+            "title": [{"type": "text", "text": {"content": page_name}}],
+        }
 
     def _build_start_time(self, start_time: str, end_time: str) -> dict:
-        return {"type": "date", "date": {"start": start_time, "end": end_time, "time_zone": None}}
+        return {
+            "type": "date",
+            "date": {"start": start_time, "end": end_time, "time_zone": None},
+        }
 
     def _build_bucket(self, bucket_id: str):
         return {"type": "relation", "relation": [{"id": bucket_id}], "has_more": False}
